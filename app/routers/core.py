@@ -95,11 +95,11 @@ def restart_core(admin: Admin = Depends(Admin.check_sudo_admin)):
         if node.connected:
             xray.operations.restart_node(node_id, startup_config)
 
-    return {"message": "Core and nodes restarted"}
+    return {"detail": "Core and nodes restarted"}
 
 
 @router.post("/core/restart/{node_id}", responses={403: responses._403})
-def restart_core_node(node_id: str, admin: Admin = Depends(Admin.check_sudo_admin)):
+def restart_core_node(node_id: int, admin: Admin = Depends(Admin.check_sudo_admin)):
     """Restart the core and all connected nodes."""
     startup_config = xray.config.include_db_users()
     node = xray.nodes.get(node_id)
@@ -109,7 +109,7 @@ def restart_core_node(node_id: str, admin: Admin = Depends(Admin.check_sudo_admi
 
     xray.operations.restart_node(node_id, startup_config)
 
-    return {"message": "Node restarted"}
+    return {"detail": "Node restarted"}
 
 
 @router.get("/core/config", responses={403: responses._403})
