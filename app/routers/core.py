@@ -95,7 +95,21 @@ def restart_core(admin: Admin = Depends(Admin.check_sudo_admin)):
         if node.connected:
             xray.operations.restart_node(node_id, startup_config)
 
-    return {}
+    return {"message": "Core and nodes restarted"}
+
+
+@router.post("/core/restart/{node_id}", responses={403: responses._403})
+def restart_core_node(node_id: str, admin: Admin = Depends(Admin.check_sudo_admin)):
+    """Restart the core and all connected nodes."""
+    startup_config = xray.config.include_db_users()
+    node = xray.nodes.get(node_id)
+
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    xray.operations.restart_node(node_id, startup_config)
+
+    return {"message": "Node restarted"}
 
 
 @router.get("/core/config", responses={403: responses._403})
