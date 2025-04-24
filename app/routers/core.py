@@ -76,7 +76,7 @@ async def core_logs(websocket: WebSocket, db: Session = Depends(get_db)):
 
 
 @router.get("/core", response_model=CoreStats)
-def get_core_stats(admin: Admin = Depends(Admin.get_current)):
+def get_core_stats(_: Admin = Depends(Admin.get_current)):
     """Retrieve core statistics such as version and uptime."""
     return CoreStats(
         version=xray.core.version,
@@ -86,29 +86,34 @@ def get_core_stats(admin: Admin = Depends(Admin.get_current)):
 
 
 @router.post("/core/restart", responses={403: responses._403})
-def restart_core(admin: Admin = Depends(Admin.check_sudo_admin)):
+def restart_core(_: Admin = Depends(Admin.check_sudo_admin)):
     """Restart the core and all connected nodes."""
     startup_config = xray.config.include_db_users()
     xray.core.restart(startup_config)
 
-    for node_id, node in list(xray.nodes.items()):
-        if node.connected:
-            xray.operations.restart_node(node_id, startup_config)
-
-    return {"detail": "Core and nodes restarted"}
+    return {"detail": "Core restarted"}
 
 
 @router.post("/core/restart/{node_id}", responses={403: responses._403})
 def restart_core_node(node_id: int, admin: Admin = Depends(Admin.check_sudo_admin)):
-    """Restart the core and all connected nodes."""
+    """Restart a specific node or all connected nodes."""
     startup_config = xray.config.include_db_users()
-    node = xray.nodes.get(node_id)
 
+    if node_id == -1:
+        for node_id, node in list(xray.nodes.items()):
+            if node.connected:
+                xray.operations.restart_node(node_id, startup_config)
+
+        return {"detail": "All connected nodes restarted"}
+
+    node = xray.nodes.get(node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
 
-    xray.operations.restart_node(node_id, startup_config)
+    if not node.connected:
+        raise HTTPException(status_code=400, detail="Node is not connected")
 
+    xray.operations.restart_node(node_id, startup_config)
     return {"detail": "Node restarted"}
 
 
